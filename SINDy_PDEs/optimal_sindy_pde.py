@@ -55,15 +55,15 @@ class OptimalPDESINDy:
 
     # -----------------------------------------------------------------------------------------------------------------------------------------
 
-    def pde_sindy(self, theta, Ut, lam=0.1, eps=0.04, iterations=10):
+    def pde_sindy(self, theta, Ut, lam=0.001, eps=0.04, iterations=10):
         """PDE-FIND algorithm"""
         n, d = theta.shape
 
         w_best = np.linalg.inv(theta.T @ theta + lam * np.eye(d)) @ theta.T @ Ut
 
-        for k in range(iterations):
-            s = abs(w_best) < eps  # find coefficients less than eps ...
-            w_best = w_best.at[s].set(0)  # ... and set them to zero
+        # for k in range(iterations):
+        #     s = abs(w_best) < eps  # find coefficients less than eps ...
+        #     w_best = w_best.at[s].set(0)  # ... and set them to zero
 
         return w_best
 
@@ -101,7 +101,7 @@ class OptimalPDESINDy:
 
     # Cost function of PDE SINDy
 
-    def cost_pde_sindy(self, w, chi, theta, Ut, lam=0.0001):
+    def cost_pde_sindy(self, w, chi, theta, Ut, lam=0.001):
         """Returns the cost of PDE SINDy for a given w coefficients vector
         Parameters-
         w: Estimated w matrix for a given theta
@@ -110,7 +110,9 @@ class OptimalPDESINDy:
         lam: regularization parameter
         """
         theta_n = self.build_new_theta(chi, theta)
-        return jnp.linalg.norm(Ut - theta_n @ w) ** 2 + lam * jnp.linalg.cond(theta_n)
+        return jnp.linalg.norm(Ut - theta_n @ w) ** 2 + lam * jnp.linalg.norm(
+            theta_n, "fro"
+        )
 
     # ------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -364,6 +366,84 @@ class OptimalPDESINDy:
 
     # ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+    def adam(
+        self,
+        w_init,
+        p_init,
+        theta,
+        Ut,
+        lam,
+        hw,
+        hp,
+        alt_loops=10,
+    ):
+        """
+        returns the optimal Psi matrix and basis parameters along with loss in approximating them using the Adam algorithm.
+        Params-
+        w_init: Initial basis parameters
+        p_init: Initial coeffients vector
+        theta, Ut: data matrices
+        hw, hp: step size of GD
+        decay_rate, decay_steps: rate and steps of deacy in step size
+        alt_loops: number of alternating loops
+
+        returns-
+        p: optimal coefficients
+        w: optimal parameters of the basis functions
+        loss_p: loss in approximating coefficients
+        loss_w: loss in approximating w
+        """
+
+        # Initialize the optimizer with the initial parameters and schedules
+        opt_init_w, opt_update_w, get_w = optimizers.adam(hw)
+        opt_init_p, opt_update_p, get_p = optimizers.adam(hp)
+
+        opt_state_w = opt_init_w(w_init)
+        opt_state_p = opt_init_p(p_init)
+
+        def update_w(w, chi, opt_state):
+            """Perform one update step of the optimizer."""
+            grads_w = self.grad_cost_pde_sindy(w, chi, theta, Ut, lam)
+            opt_state = opt_update_w(0, grads_w, opt_state)
+            new_w = get_w(opt_state)
+            return new_w, opt_state
+
+        def update_p(w, chi, opt_state):
+            """Perform one update step of the optimizer."""
+            grads_p = self.grad_cost_pde_sindy_params(w, chi, theta, Ut, lam)
+            opt_state = opt_update_p(0, grads_p, opt_state)
+            new_p = get_p(opt_state)
+            return new_p, opt_state
+
+        w_adam = w_init
+        p_adam = p_init
+        f_vals_adam_w = []
+        f_vals_adam_p = []
+        p_vals = []
+
+        l = 1
+        w_adam_temp = w_adam + 2 * jnp.ones_like(w_adam)
+
+        while (
+            self.cost_pde_sindy(w_adam, p_adam, theta, Ut, lam) > self.epss
+            and l < self.loops
+        ):  # > self.cost_pde_sindy(w_adam_temp, p_adam, theta, Ut, lam)
+
+            for i in range(alt_loops):
+                w_adam_temp = w_adam
+                w_adam, opt_state_w = update_w(w_adam, p_adam, opt_state_w)
+                loss_w = self.cost_pde_sindy(w_adam, p_adam, theta, Ut, lam)
+                f_vals_adam_w.append(loss_w)
+
+            p_adam, opt_state_p = update_p(w_adam, p_adam, opt_state_p)
+            loss = self.cost_pde_sindy(w_adam, p_adam, theta, Ut, lam)
+            f_vals_adam_p.append(loss)
+            p_vals.append(p_adam)
+
+            l += 1
+
+        return w_adam, p_adam, f_vals_adam_w, f_vals_adam_p, p_vals
+
     def adam_decay(
         self,
         w_init,
@@ -423,6 +503,7 @@ class OptimalPDESINDy:
         p_adam = p_init
         f_vals_adam_w = []
         f_vals_adam_p = []
+        p_vals = []
 
         l = 1
         step = 0
@@ -443,7 +524,8 @@ class OptimalPDESINDy:
             p_adam, opt_state_p = update_p(w_adam, p_adam, opt_state_p, step)
             loss = self.cost_pde_sindy(w_adam, p_adam, theta, Ut, lam)
             f_vals_adam_p.append(loss)
+            p_vals.append(p_adam)
 
             l += 1
 
-        return w_adam, p_adam, f_vals_adam_w, f_vals_adam_p
+        return w_adam, p_adam, f_vals_adam_w, f_vals_adam_p, p_vals
