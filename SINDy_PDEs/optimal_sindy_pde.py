@@ -110,9 +110,9 @@ class OptimalPDESINDy:
         lam: regularization parameter
         """
         theta_n = self.build_new_theta(chi, theta)
-        return jnp.linalg.norm(Ut - theta_n @ w) ** 2 + lam * jnp.linalg.norm(
-            theta_n, "fro"
-        )
+        return jnp.linalg.norm(Ut - theta_n @ w) ** 2  # + lam * jnp.linalg.norm(
+        #    theta_n, "fro"
+        # )
 
     # ------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -422,7 +422,7 @@ class OptimalPDESINDy:
         p_vals = []
 
         l = 1
-        w_adam_temp = w_adam + 2 * jnp.ones_like(w_adam)
+        # w_adam_temp = w_adam + 2 * jnp.ones_like(w_adam)
 
         while (
             self.cost_pde_sindy(w_adam, p_adam, theta, Ut, lam) > self.epss
@@ -430,7 +430,7 @@ class OptimalPDESINDy:
         ):  # > self.cost_pde_sindy(w_adam_temp, p_adam, theta, Ut, lam)
 
             for i in range(alt_loops):
-                w_adam_temp = w_adam
+                # w_adam_temp = w_adam
                 w_adam, opt_state_w = update_w(w_adam, p_adam, opt_state_w)
                 loss_w = self.cost_pde_sindy(w_adam, p_adam, theta, Ut, lam)
                 f_vals_adam_w.append(loss_w)
