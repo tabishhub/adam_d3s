@@ -14,19 +14,19 @@ Current experiments include the Ornstein-Uhlenbeck (OU) process, triple-well 2D 
 
 The Chua's circuit system is governed by the following set of ordinary differential equations (ODEs):
 
-$
-ẋ₁ = \alpha [x₂ − x₁ − f(x)], \\
-ẋ₂ = (1 / RC₂) [x₁ − x₂ + Rz], \\
-ẋ₃ = −\beta x₂.
-$
+$$
+\dot{x}_1 = \alpha [x₂ − x₁ − f(x)], \\
+\dot{x}_2 = (1 / RC₂) [x₁ − x₂ + Rz], \\
+\dot{x}_3 = −\beta x₂.
+$$
 
 where $f(x) = −b \sin(\frac{(π x_₁(t))}{a} + d)$.
 
 The following nonlinear heat equation is taken from this [paper](https://arxiv.org/abs/1811.06337):
-$
-\rho c_p \frac{\partial u}{\partial t} = \frac{\partial}{\partial x} [\kappa(u) \frac{\partial u}{\partial x}]  
+$$
+\rho c_p \frac{\partial u}{\partial t} = \frac{\partial}{\partial x} [\kappa(u) \frac{\partial u}{\partial x}]  \\
        = (\frac{\partial \kappa(u)}{\partial u} \frac{\partial u}{\partial x}^2 + \kappa(u)\frac{\partial^2 u}{\partial x^2})
-
+$$
 
 ## 🚀 Quick Guide
 
