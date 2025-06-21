@@ -1,12 +1,12 @@
 # import libraries
 
-import numpy as np
-import scipy as sp
+from typing import Callable, Union
+
 import jax
 import jax.numpy as jnp
+import numpy as np
+import scipy as sp
 from jax.example_libraries import optimizers
-from typing import Union
-
 
 # ============================================================================================================================================================================================
 
@@ -243,7 +243,6 @@ class OptimalKoopmanParameter:
     """
 
     def __init__(self, epss, loops, psi_params) -> None:
-
         self.epss = epss
         self.loops = loops
         self.psi_params = psi_params
@@ -329,16 +328,96 @@ class OptimalKoopmanParameter:
         grad_calc_params_vamp = jax.grad(self.cost_vamp2)
         return grad_calc_params_vamp(W, X, Y)
 
+    def optimizer(
+        self,
+        optim: str = "adam",
+        hk: float = 0.01,
+        hw: float = 0.01,
+        mass: float = 0.1,
+        decay_rate: float = None,
+        decay_steps: int = None,
+    ) -> Callable[[jax.numpy.ndarray], jax.numpy.ndarray]:
+        """
+        Optimizer to be used for training
+
+        Params -
+        optim: optimizer to be used for training, available options are 'adam', 'nesterov', 'gd'
+
+        returns -
+        update functions for the optimizer in JAX
+        """
+        # lr_schedule = hk
+
+        # if decay_rate is not None and decay_steps is not None:
+        #     lr_schedule = optimizers.exponential_decay(
+        #         init_value=hk,  # Starting learning rate
+        #         transition_steps=decay_steps,  # How often to decay
+        #         decay_rate=decay_rate,  # How much to decay
+        #         staircase=False,  # Smooth decay if False, stepwise if True
+        #     )
+
+        if optim == "gd":
+            # Initialize the optimizer with the initial parameters
+            opt_init_K, opt_update_K, get_K = optimizers.sgd(hk)
+
+            # Initialize the optimizer with the initial parameters
+            opt_init_w, opt_update_w, get_w = optimizers.sgd(hw)
+
+        elif optim == "sgd":
+            # Initialize the optimizer with the initial parameters
+            opt_init_K, opt_update_K, get_K = optimizers.sgd(hk)
+
+            # Initialize the optimizer with the initial parameters
+            opt_init_w, opt_update_w, get_w = optimizers.sgd(hw)
+
+        elif optim == "nesterov":
+            # Initialize the optimizer with the initial parameters
+            opt_init_K, opt_update_K, get_K = optimizers.nesterov(hk, mass)
+
+            # Initialize the optimizer with the initial parameters
+            opt_init_w, opt_update_w, get_w = optimizers.nesterov(hw, mass)
+
+        elif optim == "adam":
+            # Initialize the optimizer with the initial parameters
+            opt_init_K, opt_update_K, get_K = optimizers.adam(hk)
+
+            # Initialize the optimizer with the initial parameters
+            opt_init_w, opt_update_w, get_w = optimizers.adam(hw)
+
+        elif optim == "rmsprop":
+            # Initialize the optimizer with the initial parameters
+            opt_init_K, opt_update_K, get_K = optimizers.rmsprop(hk)
+
+            # Initialize the optimizer with the initial parameters
+            opt_init_w, opt_update_w, get_w = optimizers.rmsprop(hw)
+        else:
+            raise ValueError(
+                f"Optimizer {optim} is not available; available options are 'adam', 'nesterov', 'gd', 'rmsprop'."
+            )
+        return opt_init_K, opt_update_K, get_K, opt_init_w, opt_update_w, get_w
+
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-    def gradient_descent(self, K_init, w_init, X, Y, hk, hw):
+    def koopman_approximation(
+        self,
+        K_init: jnp.ndarray,
+        w_init: jnp.ndarray,
+        X: jnp.ndarray,
+        Y: jnp.ndarray,
+        hk: float,
+        hw: float,
+        optim: str = "adam",
+        stochastic: bool = False,
+        batch_size: int = 100,
+    ):
         """
-        returns the optimal Koopman matrix K and basis parameters W along with loss in approximating them using gradient descent algorithm.
+        returns the optimal Koopman matrix K and basis parameters W along with loss in approximating them using the specified optimizer.
         Params-
         K_init: Initial Koopman matrix K
         w_init: Initial parameters of the basis functions
         X, Y: data matrices
         hk, hw: step sizes of GD
+        optim: optimizer to be used for training, available options are 'adam', 'nesterov', 'gd'
 
         returns-
         K: optimal Koopman matrix
@@ -348,78 +427,10 @@ class OptimalKoopmanParameter:
         """
 
         # Initialize the optimizer with the initial parameters
-        opt_init_K, opt_update_K, get_K = optimizers.sgd(hk)
 
-        # Initialize the optimizer with the initial parameters
-        opt_init_w, opt_update_w, get_w = optimizers.sgd(hw)
-
-        opt_state_K = opt_init_K(K_init)
-        opt_state_w = opt_init_w(w_init)
-
-        def update_K(K, w, opt_state):
-            """Perform one update step of the optimizer."""
-            grads_K = self.gradient_cost_edmd(K, w, X, Y)
-            opt_state = opt_update_K(0, grads_K, opt_state)
-            new_K = get_K(opt_state)
-            return new_K, opt_state
-
-        def update_w(w, opt_state):
-            """Perform one update step of the optimizer."""
-            grads_w = self.gradient_cost_params_vamp2(w, X, Y)
-            opt_state = opt_update_w(0, grads_w, opt_state)
-            new_w = get_w(opt_state)
-            return new_w, opt_state
-
-        K_gd = K_init
-        w_gd = w_init
-        f_vals_gd_K = []
-        f_vals_gd_w = []
-
-        loss_K = self.cost_edmd(K_gd, w_gd, X, Y)
-        f_vals_gd_K.append(loss_K)
-        loss_w = self.cost_vamp2(w_gd, X, Y)
-        f_vals_gd_w.append(loss_w)
-
-        l = 1
-
-        while (
-            jnp.linalg.norm(self.gradient_cost_edmd(K_gd, w_gd, X, Y)) > self.epss
-            and l < self.loops
-        ):
-
-            K_gd, opt_state_K = update_K(K_gd, w_gd, opt_state_K)
-            loss_K = self.cost_edmd(K_gd, w_gd, X, Y)
-            f_vals_gd_K.append(loss_K)
-
-            w_gd, opt_state_w = update_w(w_gd, opt_state_w)
-            loss_w = self.cost_vamp2(w_gd, X, Y)
-            f_vals_gd_w.append(loss_w)
-
-            l = l + 1
-
-        return K_gd, w_gd, f_vals_gd_K, f_vals_gd_w
-
-    def stochastic_gradient_descent(self, K_init, w_init, X, Y, hk, hw, batch_size):
-        """
-        returns the optimal Koopman matrix K and basis parameters W along with loss in approximating them using stochastic gradient descent algorithm.
-        Params-
-        K_init: Initial Koopman matrix K
-        w_init: Initial parameters of the basis functions
-        X, Y: data matrices
-        hk, hw: step sizes of GD
-        batch_size: number of data points in each subset
-
-        returns-
-        K: optimal Koopman matrix
-        W: optimal basis parameters
-        loss_K: loss in approximating K matrix
-        loss_w: loss in approximating W matrix
-        """
-        # Initialize the optimizer with the initial parameters
-        opt_init_K, opt_update_K, get_K = optimizers.sgd(hk)
-
-        # Initialize the optimizer with the initial parameters
-        opt_init_w, opt_update_w, get_w = optimizers.sgd(hw)
+        opt_init_K, opt_update_K, get_K, opt_init_w, opt_update_w, get_w = (
+            self.optimizer(optim, hk, hw)
+        )
 
         opt_state_K = opt_init_K(K_init)
         opt_state_w = opt_init_w(w_init)
@@ -438,191 +449,57 @@ class OptimalKoopmanParameter:
             new_w = get_w(opt_state)
             return new_w, opt_state
 
-        K_sgd = K_init
-        w_sgd = w_init
-        f_vals_sgd_K = []
-        f_vals_sgd_w = []
+        K_opt = K_init
+        w_opt = w_init
+        loss_k = []
+        loss_w = []
 
-        loss_K = self.cost_edmd(K_sgd, w_sgd, X, Y)
-        f_vals_sgd_K.append(loss_K)
-        loss_w = self.cost_vamp2(w_sgd, X, Y)
-        f_vals_sgd_w.append(loss_w)
+        cost_k = self.cost_edmd(K_opt, w_opt, X, Y)
+        loss_k.append(cost_k)
+        cost_w = self.cost_vamp2(w_opt, X, Y)
+        loss_w.append(cost_w)
 
         idx = [i for i in range(X.shape[1])]
 
         l = 1
 
         while (
-            jnp.linalg.norm(self.gradient_cost_edmd(K_sgd, w_sgd, X, Y), "fro")
-            > self.epss
+            jnp.linalg.norm(self.gradient_cost_edmd(K_opt, w_opt, X, Y)) > self.epss
             and l < self.loops
         ):
+            if stochastic:
+                perm_idx = np.random.permutation(idx)
+                for i in range(int(X.shape[1] / batch_size)):
+                    chosen_idx = perm_idx[i * batch_size : (i + 1) * batch_size]
 
-            perm_idx = np.random.permutation(idx)
-            for i in range(int(X.shape[1] / batch_size)):
-                chosen_idx = perm_idx[i * batch_size : (i + 1) * batch_size]
+                    X_s = jnp.take(X, chosen_idx, 1)
+                    Y_s = jnp.take(Y, chosen_idx, 1)
 
-                X_s = jnp.take(X, chosen_idx, 1)
-                Y_s = jnp.take(Y, chosen_idx, 1)
+                    K_opt, opt_state_K = update_K(K_opt, w_opt, X_s, Y_s, opt_state_K)
+                    cost_k = self.cost_edmd(K_opt, w_opt, X, Y)
+                    loss_k.append(cost_k)
 
-                K_sgd, opt_state_K = update_K(K_sgd, w_sgd, X_s, Y_s, opt_state_K)
-                loss_K = self.cost_edmd(K_sgd, w_sgd, X, Y)
-                f_vals_sgd_K.append(loss_K)
+                    w_opt, opt_state_w = update_w(w_opt, X_s, Y_s, opt_state_w)
+                    cost_w = self.cost_vamp2(w_opt, X, Y)
+                    loss_w.append(cost_w)
 
-                w_sgd, opt_state_w = update_w(w_sgd, X_s, Y_s, opt_state_w)
-                loss_w = self.cost_vamp2(w_sgd, X, Y)
-                f_vals_sgd_w.append(loss_w)
+                    l = l + 1
+            else:
+                # Perform one update step of the optimizer
 
+                K_opt, opt_state_K = update_K(K_opt, w_opt, X, Y, opt_state_K)
+                cost_k = self.cost_edmd(K_opt, w_opt, X, Y)
+                loss_k.append(cost_k)
+                w_opt, opt_state_w = update_w(w_opt, X, Y, opt_state_w)
+                cost_w = self.cost_vamp2(w_opt, X, Y)
+                loss_w.append(cost_w)
                 l = l + 1
 
-        return K_sgd, w_sgd, f_vals_sgd_K, f_vals_sgd_w
-
-    # ---------------------------------------------------------------------------------------------------------------------------------------------------
-
-    def nesterov(self, K_init, w_init, X, Y, hk, hw, mass=0.1):
-        """
-        returns the optimal Koopman matrix K and basis parameters W along with loss in approximating them using Nesterov algorithm.
-        Params-
-        K_init: Initial Koopman matrix K
-        w_init: Initial parameters of the basis functions
-        X, Y: data matrices
-        hk, hw: step sizes of GD
-        mass: mass in Nesterov
-
-        returns-
-        K: optimal Koopman matrix
-        W: optimal basis parameters
-        loss_K: loss in approximating K matrix
-        loss_w: loss in approximating W matrix
-        """
-
-        # Initialize the optimizer with the initial parameters
-        opt_init_K, opt_update_K, get_K = optimizers.nesterov(hk, mass)
-
-        # Initialize the optimizer with the initial parameters
-        opt_init_w, opt_update_w, get_w = optimizers.nesterov(hw, mass)
-
-        opt_state_K = opt_init_K(K_init)
-        opt_state_w = opt_init_w(w_init)
-
-        def update_K(K, w, opt_state):
-            """Perform one update step of the optimizer."""
-            grads_K = self.gradient_cost_edmd(K, w, X, Y)
-            opt_state = opt_update_K(0, grads_K, opt_state)
-            new_K = get_K(opt_state)
-            return new_K, opt_state
-
-        def update_w(w, opt_state):
-            """Perform one update step of the optimizer."""
-            grads_w = self.gradient_cost_params_vamp2(w, X, Y)
-            opt_state = opt_update_w(0, grads_w, opt_state)
-            new_w = get_w(opt_state)
-            return new_w, opt_state
-
-        K_nest = K_init
-        w_nest = w_init
-        f_vals_nest_K = []
-        f_vals_nest_w = []
-
-        loss_K = self.cost_edmd(K_nest, w_nest, X, Y)
-        f_vals_nest_K.append(loss_K)
-        loss_w = self.cost_vamp2(w_nest, X, Y)
-        f_vals_nest_w.append(loss_w)
-
-        l = 1
-
-        while (
-            jnp.linalg.norm(self.gradient_cost_edmd(K_nest, w_nest, X, Y)) > self.epss
-            and l < self.loops
-        ):
-
-            K_nest, opt_state_K = update_K(K_nest, w_nest, opt_state_K)
-            loss_K = self.cost_edmd(K_nest, w_nest, X, Y)
-            f_vals_nest_K.append(loss_K)
-
-            w_nest, opt_state_w = update_w(w_nest, opt_state_w)
-            loss_w = self.cost_vamp2(w_nest, X, Y)
-            f_vals_nest_w.append(loss_w)
-
-            l = l + 1
-
-        return K_nest, w_nest, f_vals_nest_K, f_vals_nest_w
-
-    # ---------------------------------------------------------------------------------------------------------------------------------------------------
-
-    def adam(self, K_init, w_init, X, Y, hk, hw):
-        """
-        returns the optimal Koopman matrix K and basis parameters W along with loss in approximating them using Adam algorithm.
-        Params-
-        K_init: Initial Koopman matrix K
-        w_init: Initial parameters of the basis functions
-        X, Y: data matrices
-        hk, hw: step sizes of Adam
-
-        returns-
-        K: optimal Koopman matrix
-        W: optimal basis parameters
-        loss_K: loss in approximating K matrix
-        loss_w: loss in approximating W matrix
-        """
-
-        # Initialize the optimizer with the initial parameters
-        opt_init_K, opt_update_K, get_K = optimizers.adam(hk)
-
-        # Initialize the optimizer with the initial parameters
-        opt_init_w, opt_update_w, get_w = optimizers.adam(hw)
-
-        opt_state_K = opt_init_K(K_init)
-        opt_state_w = opt_init_w(w_init)
-
-        def update_K(K, w, opt_state):
-            """Perform one update step of the optimizer."""
-            grads_K = self.gradient_cost_edmd(K, w, X, Y)
-            opt_state = opt_update_K(0, grads_K, opt_state)
-            new_K = get_K(opt_state)
-            return new_K, opt_state
-
-        def update_w(w, opt_state):
-            """Perform one update step of the optimizer."""
-            grads_w = self.gradient_cost_params_vamp2(w, X, Y)
-            opt_state = opt_update_w(0, grads_w, opt_state)
-            new_w = get_w(opt_state)
-            return new_w, opt_state
-
-        K_adam = K_init
-        w_adam = w_init
-        f_vals_adam_K = []
-        f_vals_adam_w = []
-
-        loss_K = self.cost_edmd(K_adam, w_adam, X, Y)
-        f_vals_adam_K.append(loss_K)
-        loss_w = self.cost_vamp2(w_adam, X, Y)
-        f_vals_adam_w.append(loss_w)
-
-        l = 1
-
-        while (
-            jnp.linalg.norm(self.gradient_cost_edmd(K_adam, w_adam, X, Y)) > self.epss
-            and l < self.loops
-        ):
-
-            w_adam, opt_state_w = update_w(w_adam, opt_state_w)
-            loss_w = self.cost_vamp2(w_adam, X, Y)
-            f_vals_adam_w.append(loss_w)
-
-            K_adam, opt_state_K = update_K(K_adam, w_adam, opt_state_K)
-            loss_K = self.cost_edmd(K_adam, w_adam, X, Y)
-            f_vals_adam_K.append(loss_K)
-
-            l = l + 1
-
-        return K_adam, w_adam, f_vals_adam_K, f_vals_adam_w
+        return K_opt, w_opt, loss_k, loss_w
 
 
 class OptimalKoopman:
-
     def __init__(self, epss, loops) -> None:
-
         self.epss = epss
         self.loops = loops
 
@@ -671,7 +548,6 @@ class OptimalKoopman:
             jnp.linalg.norm(self.gradient_cost_edmd(K_gd, psi_x, psi_y)) > self.epss
             and l < self.loops
         ):
-
             K_gd, opt_state_K = update_K(K_gd, opt_state_K)
             loss_K = self.cost_edmd(K_gd, psi_x, psi_y)
             f_vals_gd_K.append(loss_K)
@@ -753,7 +629,6 @@ class OptimalKoopman:
             jnp.linalg.norm(self.gradient_cost_edmd(K_nest, psi_x, psi_y)) > self.epss
             and l < self.loops
         ):
-
             K_nest, opt_state_K = update_K(K_nest, opt_state_K)
             loss_K = self.cost_edmd(K_nest, psi_x, psi_y)
             f_vals_nest_K.append(loss_K)

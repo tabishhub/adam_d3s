@@ -16,7 +16,7 @@ The Chua's circuit system is governed by the following set of ordinary different
 
 $$
 \dot{x}_1 = \alpha [x₂ − x₁ − f(x)], \\
-\dot{x}_2 = (1 / RC₂) [x₁ − x₂ + Rz], \\
+\dot{x}_2 = (\frac{1}{R C_2}) [x₁ − x₂ + Rz], \\
 \dot{x}_3 = −\beta x₂.
 $$
 

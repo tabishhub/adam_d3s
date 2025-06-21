@@ -1,21 +1,34 @@
 # SINDy for PDE
 
-import numpy as np
-from numpy import linalg as LA
-import scipy.sparse as sparse
-from scipy.sparse import csc_matrix
-from scipy.sparse import dia_matrix
 import itertools
 import operator
+
 import jax.numpy as jnp
+import numpy as np
+import scipy.sparse as sparse
 
-"""
-A few functions used in PDE-FIND
-
-Samuel Rudy.  2016
-
+# TODO: Please read the citation below
 """
 
+This code is taken from the original PDE-FIND code, which is available on GitHub at:
+
+S. H. Rudy, S. L. Brunton, J. L. Proctor, and J. N. Kutz. Data-driven discovery of
+partial differential equations. Science Advances, 3(4):e1602614, 2017. doi:10.1126/
+sciadv.1602614
+
+Link to original code: https://github.com/snagcliffs/PDE-FIND/blob/master/PDE_FIND.py
+
+Link to original paper: https://www.science.org/doi/10.1126/sciadv.1602614
+
+"""
+
+"""
+Few other helpful links related to pySINDy; a Python package for sparse identification of nonlinear dynamical systems:
+
+Brian M. de Silva, Kathleen Champion, Markus Quade, Jean-Christophe Loiseau, J. Nathan Kutz, and Steven L. Brunton., (2020). PySINDy: A Python package for the sparse identification of nonlinear dynamical systems from data. Journal of Open Source Software, 5(49), 2104, https://doi.org/10.21105/joss.02104
+
+Kaptanoglu et al., (2022). PySINDy: A comprehensive Python package for robust sparse system identification. Journal of Open Source Software, 7(69), 3994, https://doi.org/10.21105/joss.03994
+"""
 
 ##################################################################################
 ##################################################################################
@@ -169,7 +182,6 @@ def PolyDiff(u, x, deg=3, diff=1, width=5):
 
     # Take the derivatives in the center of the domain
     for j in range(width, n - width):
-
         # Note code originally used an even number of points here.
         # This is an oversight in the original code fixed in 2022.
         points = np.arange(j - width, j + width + 1)
@@ -433,7 +445,6 @@ def build_linear_system(
         ik = 1j * np.fft.fftfreq(n) * n
 
     for d in range(D + 1):
-
         if d > 0:
             for i in range(m2):
                 if space_diff == "Tik":
@@ -553,7 +564,6 @@ def TrainSTRidge(
 
     # Now increase tolerance until test performance decreases
     for iter in range(maxit):
-
         # Get a set of coefficients and error
         w = STRidge(TrainR, TrainY, lam, STR_iters, tol, normalize=normalize)
         err = np.linalg.norm(TestY - TestR.dot(w), 2) + l0_penalty * np.count_nonzero(w)
@@ -610,7 +620,6 @@ def Lasso(X0, Y, lam, w=np.array([0]), maxit=100, normalize=2):
 
     # Now loop until converged or max iterations
     for iters in range(0, maxit):
-
         # Update w
         z = w + iters / float(iters + 1) * (w - w_old)
         w_old = w
@@ -666,7 +675,6 @@ def ElasticNet(X0, Y, lam1, lam2, w=np.array([0]), maxit=100, normalize=2):
 
     # Now loop until converged or max iterations
     for iters in range(0, maxit):
-
         # Update w
         z = w + iters / float(iters + 1) * (w - w_old)
         w_old = w
@@ -717,7 +725,6 @@ def STRidge(X0, y, lam, maxit, tol, normalize=2, print_results=False):
 
     # Threshold and continue
     for j in range(maxit):
-
         # Figure out which items to cut out
         smallinds = np.where(abs(w) < tol)[0]
         new_biginds = [i for i in range(d) if i not in smallinds]
@@ -788,7 +795,6 @@ def FoBaGreedy(
     delta = {}
 
     for forward_iter in range(maxit_f):
-
         k = k + 1
 
         # forward step
@@ -799,7 +805,6 @@ def FoBaGreedy(
         err_after_addition = []
         residual = y - X.dot(w[k - 1])
         for i in zero_coeffs:
-
             if relearn_f:
                 F_trial = F[k - 1].union({i})
                 w_added = np.zeros((d, 1))
@@ -828,13 +833,10 @@ def FoBaGreedy(
 
         # backward step, do once every few forward steps
         if forward_iter % backwards_freq == 0 and forward_iter > 0:
-
             for backward_iter in range(maxit_b):
-
                 non_zeros = np.where(w[k] != 0)[0]
                 err_after_simplification = []
                 for j in non_zeros:
-
                     if relearn_b:
                         F_trial = F[k].difference({j})
                         w_simple = np.zeros((d, 1))

@@ -1,12 +1,13 @@
 ## Optimal parameters SINDy
 
-import numpy as np
-import scipy as sp
+from typing import Union
+
 import jax
 import jax.numpy as jnp
+import numpy as np
+import scipy as sp
 from jax.example_libraries import optimizers
 from scipy.integrate import odeint
-from typing import Union
 
 # ==========================================================================================================================================
 # Utility functions for plotting
@@ -164,7 +165,6 @@ def cost_sindy(Psi, X_dot, psi_x):
 
 
 class GenerateODEData:
-
     # Initialization of the class
     def __init__(self, system) -> None:
         self.system = system
@@ -195,10 +195,8 @@ class GenerateODEData:
 
 
 class OptimalSindyODE:
-
     # Initialization of the class
     def __init__(self, epss, loops, psi_params) -> None:
-
         self.epss = epss
         self.loops = loops
         self.psi_params = psi_params
@@ -324,7 +322,6 @@ class OptimalSindyODE:
         l = 1
 
         while self.cost_sindy(W_gd, Psi_gd, X, X_dot) > self.epss and l < self.loops:
-
             for i in range(alt_loops):
                 Psi_gd, opt_state_psi = update_psi(W_gd, Psi_gd, opt_state_psi)
                 loss_psi = self.cost_sindy(W_gd, Psi_gd, X, X_dot)
@@ -390,7 +387,6 @@ class OptimalSindyODE:
         idx = [i for i in range(X.shape[1])]
 
         while self.cost_sindy(W_sgd, Psi_sgd, X, X_dot) > self.epss and l < self.loops:
-
             perm_idx = np.random.permutation(idx)
             for i in range(int(X.shape[1] / batch_size)):
                 chosen_idx = perm_idx[i * batch_size : (i + 1) * batch_size]
@@ -464,7 +460,6 @@ class OptimalSindyODE:
         while (
             self.cost_sindy(W_nest, Psi_nest, X, X_dot) > self.epss and l < self.loops
         ):
-
             for i in range(alt_loops):
                 Psi_nest, opt_state_psi = update_psi(W_nest, Psi_nest, opt_state_psi)
                 loss_psi = self.cost_sindy(W_nest, Psi_nest, X, X_dot)
@@ -530,7 +525,6 @@ class OptimalSindyODE:
         while (
             self.cost_sindy(W_adam, Psi_adam, X, X_dot) > self.epss and l < self.loops
         ):
-
             for i in range(alt_loops):
                 Psi_adam, opt_state_psi = update_psi(W_adam, Psi_adam, opt_state_psi)
                 loss_psi = self.cost_sindy(W_adam, Psi_adam, X, X_dot)
@@ -602,7 +596,6 @@ class OptimalSindyODE:
         while (
             self.cost_sindy(W_adam, Psi_adam, X, X_dot) > self.epss and l < self.loops
         ):
-
             step += 1
             for i in range(alt_loops):
                 Psi_adam, opt_state_psi = update_psi(W_adam, Psi_adam, opt_state_psi)
