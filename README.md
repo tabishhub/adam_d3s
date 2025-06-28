@@ -2,55 +2,145 @@
 
 ## Table of Contents
 - [Introduction](#introduction)
-This repository contains the implementation of our recently proposed alternating gradient descent algorithms like **Alternating Adam** for learning dynamical systems from data. Key focus is on approximating the **Koopman operator** and applying **Sparse Identification of Nonlinear Dynamics (SINDy)** with a set of parametric basis functions. The proposed algorithms are called **parametric EDMD** and **parametric SINDy**. The main benefit of the proposed algorithms is that we can use a parametric set of basis funtions instead of fixed basis functions like in **EDMD** and **SINDy**. We present application of the proposed algorithms on learning the Koopman operator for different stochastic dynamical systems and protein folding problem. The protein data is obtained from the company [`D.E. Shaw Research`](https://www.deshawresearch.com/resources.html). 
-
 - [Usage](#usage)
-This version of the implementation contains basic Jupyter notebooks for each experiment alongside the algorithm implmentation. You just have to navigate to the different folders and find experiments to run.
-
 - [Results](#results)
-Current experiments include the Ornstein-Uhlenbeck (OU) process, triple-well 2D potential Chignolin protein folding using the Koopman operator. For the parametric SINDy, we have the parametric Chua's circuit and a parametric nonlinear heat equation.
+- [System Dynamics](#system-dynamics)
+- [Quick Guide](#quick-guide)
+- [References](#references)
+
+---
+
+## 📘 Introduction
+
+This repository contains the implementation of our recently proposed alternating gradient descent algorithms like **Alternating Adam** for learning dynamical systems from data.
+
+Our focus is on approximating the **Koopman operator** and applying **Sparse Identification of Nonlinear Dynamics (SINDy)** using a set of **parametric basis functions**. These methods extend traditional **EDMD** and **SINDy** by optimizing over basis functions rather than using fixed ones.
+
+### Key Highlights:
+- Learn **data-driven dynamical systems** using parametric models.
+- Use gradient-based optimization with alternating minimization (Adam).
+- Apply to **stochastic systems**, **chaotic circuits**, and **protein folding**.
+- Demonstrated on datasets like the **Chignolin protein** from [`D. E. Shaw Research`](https://www.deshawresearch.com/resources.html).
+
+---
+
+## ⚙️ Usage
+
+This repository is organized by experiment. Each folder includes:
+- A Jupyter notebook
+- Model training code
+- Visualization scripts
+
+You can explore models and results by opening the notebooks inside each experiment folder.
+
+---
+
+## 📊 Results
+
+The following systems are modeled using either the Koopman operator or parametric SINDy:
+
+- ✅ **Ornstein-Uhlenbeck (OU) process**
+- ✅ **Triple-well potential (2D)**
+- ✅ **Chignolin protein folding**
+- ✅ **Chua’s circuit**
+- ✅ **Nonlinear heat equation**
+
+Each demonstrates improved performance using parametric basis learning over classical fixed dictionaries.
+
+---
 
 ## 📐 System Dynamics
 
-The Chua's circuit system is governed by the following set of ordinary differential equations (ODEs):
+### 🔌 Chua's Circuit
 
-$$
-\dot{x}_1 = \alpha [x₂ − x₁ − f(x)], \\
-\dot{x}_2 = (\frac{1}{R C_2}) [x₁ − x₂ + Rz], \\
-\dot{x}_3 = −\beta x₂.
-$$
+The dynamics of Chua’s circuit are governed by the following system of ODEs:
 
-where $f(x) = −b \sin(\frac{(π x_₁(t))}{a} + d)$.
+```latex
+\dot{x}_1 = \alpha \left(x_2 - x_1 - f(x_1)\right) \\
+\dot{x}_2 = \frac{1}{R C_2} \left(x_1 - x_2 + R x_3\right) \\
+\dot{x}_3 = -\beta x_2
+```
 
-The following nonlinear heat equation is taken from this [paper](https://arxiv.org/abs/1811.06337):
-$$
-\rho c_p \frac{\partial u}{\partial t} = \frac{\partial}{\partial x} [\kappa(u) \frac{\partial u}{\partial x}]  \\
-       = (\frac{\partial \kappa(u)}{\partial u} \frac{\partial u}{\partial x}^2 + \kappa(u)\frac{\partial^2 u}{\partial x^2})
-$$
+with the nonlinear function:
+
+```latex
+f(x_1) = -b \sin\left(\frac{\pi x_1}{a} + d\right)
+```
+
+---
+
+### 🌡️ Nonlinear Heat Equation
+
+Adapted from [this paper](https://arxiv.org/abs/1811.06337), the PDE is:
+
+```latex
+\rho c_p \frac{\partial u}{\partial t} = \frac{\partial}{\partial x} \left( \kappa(u) \frac{\partial u}{\partial x} \right)
+```
+
+Expanded using the chain rule:
+
+```latex
+\rho c_p \frac{\partial u}{\partial t} = \frac{\partial \kappa(u)}{\partial u} \left( \frac{\partial u}{\partial x} \right)^2 + \kappa(u) \frac{\partial^2 u}{\partial x^2}
+```
+
+---
 
 ## 🚀 Quick Guide
 
-1. **Download/Clone the Repository**
-   - **On GitHub**: Click on `Code` → `Download ZIP`.
-   - **On CLI**:
-     ```bash
-     git clone https://github.com/tabishhub/data_driven_dynamical_systems.git
-     ```
+### 1. Download or Clone the Repository
 
-3. **Running the Notebooks**
-   - On Google Colab, go to `File` → `Upload notebook`
-   - Local machine: run the notebook directly.
-   - Execute each cell by:
-     - Clicking the ▶️ play button on the left of each cell, or
-     - Pressing `Shift + Enter`
+```bash
+git clone https://github.com/tabishhub/data_driven_dynamical_systems.git
+```
 
-## References
+Or use the **Download ZIP** button from the GitHub interface.
+
+---
+
+### 2. Run the Jupyter Notebooks
+
+You can run experiments in either Google Colab or your local Python environment.
+
+#### 🔁 On Google Colab:
+- Open [Google Colab](https://colab.research.google.com/)
+- Click `File → Upload Notebook`
+- Upload and run any notebook from this repo
+
+#### 💻 On Local Machine:
+- Make sure you have Python 3.8+ and Jupyter installed.
+- Navigate to the notebook's folder and run:
+
+```bash
+jupyter notebook
+```
+
+Then open the desired `.ipynb` file and run cells using `Shift + Enter`.
+
+---
+
+## 📚 References
+
+### 📄 Citation
+
+If you use this work, please cite the following:
+
+```bibtex
 @article{tabish2024learning,
   title={Learning dynamical systems from data: Gradient-based dictionary optimization},
   author={Tabish, Mohammad and Chada, Neil K and Klus, Stefan},
   journal={arXiv preprint arXiv:2411.04775},
   year={2024}
 }
+```
 
-Link of the paper [Adam_d3s](https://arxiv.org/abs/2411.04775)
+### 🔗 Paper Link
 
+- [arXiv:2411.04775](https://arxiv.org/abs/2411.04775)
+
+---
+
+## 🙌 Acknowledgements
+
+Protein folding data used in this work is sourced from [`D. E. Shaw Research`](https://www.deshawresearch.com/resources.html). We thank the authors and maintainers of the respective datasets and prior models.
+
+---
