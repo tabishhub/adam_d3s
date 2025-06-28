@@ -156,3 +156,4 @@ cython_debug/
 
 
 .venv/
+SINDy_PDEs/utils.py
