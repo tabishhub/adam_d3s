@@ -69,7 +69,7 @@ f(x_1) = -b \sin\left(\frac{\pi x_1}{a} + d\right)
 
 ---
 
-### 🌡️ Nonlinear Heat Equation
+### 🌡️ Nonlinear Heat Equation 
 
 Adapted from [this paper](https://arxiv.org/abs/1811.06337), the PDE is:
 
@@ -141,6 +141,6 @@ If you use this work, please cite the following:
 
 ## 🙌 Acknowledgements
 
-Protein folding data used in this work is sourced from [`D. E. Shaw Research`](https://www.deshawresearch.com/resources.html). We thank the authors and maintainers of the respective datasets and prior models.
+Protein folding data used in this work is sourced from [`D. E. Shaw Research`](https://www.deshawresearch.com/resources.html). We thank the authors and maintainers of the datasets.
 
 ---
