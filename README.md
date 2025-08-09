@@ -125,17 +125,22 @@ Then open the desired `.ipynb` file and run cells using `Shift + Enter`.
 If you use this work, please cite the following:
 
 ```bibtex
-@article{tabish2024learning,
-  title={Learning dynamical systems from data: Gradient-based dictionary optimization},
-  author={Tabish, Mohammad and Chada, Neil K and Klus, Stefan},
-  journal={arXiv preprint arXiv:2411.04775},
-  year={2024}
+@article{TABISH2025134822,
+title = {Learning dynamical systems from data: Gradient-based dictionary optimization},
+author = {Mohammad Tabish and Neil K. Chada and Stefan Klus},
+journal = {Physica D: Nonlinear Phenomena},
+volume = {481},
+pages = {134822},
+year = {2025},
+issn = {0167-2789},
+doi = {https://doi.org/10.1016/j.physd.2025.134822},
+url = {https://www.sciencedirect.com/science/article/pii/S0167278925002994},
 }
 ```
 
 ### 🔗 Paper Link
 
-- [arXiv:2411.04775](https://arxiv.org/abs/2411.04775)
+- [DOI](https://doi.org/10.1016/j.physd.2025.134822)
 
 ---
 
