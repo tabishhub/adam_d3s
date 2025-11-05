@@ -123,76 +123,42 @@ def sortEig(A, evs=5, which="LM"):
 
 
 def basis_func_1D(X, sigma, c):
-    """
-    Returns the transformed data points to 1D Gaussian function values.
-    Parameters-
-    X: Data in a matrix of size dimension*number of data points
-    sigma: variance
-    c: center
-    """
-    result = jnp.exp(-(jnp.linalg.norm(X - c, axis=0) ** 2) / (2 * sigma**2))
-    return result
+    X_flat = X.flatten()
+    squared_distances = (X_flat - c) ** 2
+    return jnp.exp(-squared_distances / (2 * sigma**2))
 
 
 def psi_1D(X, W):
-    """
-    Returns the transformed data points to the space spanned by the given basis functions with shape [n, m]
-    Parameters-
-    X: Data in a matrix of size dimension*number of data points
-    sigmas: Covariance matrices with length n, # of basis elements
-    C: centers vector with length n, # of basis elements
-    """
-    m = X.shape[1]
-    n = W.shape[0]
-    TX = jnp.zeros((n, m))
-    for i in range(n):
-        TX = TX.at[i, :].set(basis_func_1D(X, W[i, 0], W[i, 1]))
-    return jnp.array(TX, dtype="float64")
+    X_flat = X.flatten()
+
+    def apply_single_basis(w):
+        sigma, c = w[0], w[1]
+        return basis_func_1D(X_flat, sigma, c)
+
+    TX = jax.vmap(apply_single_basis)(W)
+    return jnp.squeeze(TX)
 
 
 def basis_func_nD(X, sigma, mu):
-    """
-    Returns the transformed data points to Gaussian function values with covariance sigma and mean mu.
-    Parameters-
-    X: Data in a matrix of size dimension*number of data points
-    sigma: Covariance matrices with shape [d, d], d is the dimension of datapoints
-    mus: mean vectors with length d, the dimension of datapoints
-    """
-    m = X.shape[1]
-    d = X.shape[0]
+    mu = mu.reshape(-1, 1)
 
-    mu = mu.reshape(d, 1)
+    diff = X - mu  # [d, m]
 
-    basis = jnp.zeros((1, m))
+    basis_values = 0.5 * jnp.sum((diff / sigma) ** 2, axis=0, keepdims=True)
 
-    for i in range(m):
-        diff = X[:, i].reshape(d, 1) - mu
-
-        # pinv_sigma = jnp.linalg.pinv(sigma + 0.0001 * jnp.eye(sigma.shape[0]))
-
-        basis_value = (1 / 2) * ((diff.T @ diff) / sigma**2)[0, 0]
-
-        basis = basis.at[:, i].set(basis_value)
-
-    result = jnp.exp(-basis)
-
-    return result
+    return jnp.exp(-basis_values)
 
 
 def psi_nD(X, W):
-    """
-    Returns the transformed data points to the space spanned by the given basis functions with shape [n, m]
-    Parameters-
-    X: Data in a matrix of size dimension*number of data points
-    sigmas: Covariance matrices with shape [n, d, d], n is # of basis elements and d is the dimension of datapoints
-    mus: mean vectors with shape [n, d], n is # of basis elements and d is the dimension of datapoints
-    """
-    m = X.shape[1]
-    n = W.shape[0]
-    TX = jnp.zeros((n, m))
-    for i in range(n):
-        TX = TX.at[i, :].set(basis_func_nD(X, W[i, 0], W[i, 1:]).flatten())
-    return jnp.array(TX, dtype="float64")
+    sigmas = W[:, 0]  # shape [n]
+    mus = W[:, 1:]  # shape [n, d]
+
+    def single_basis(sigma, mu):
+        return basis_func_nD(X, sigma, mu)
+
+    TX = jax.vmap(single_basis)(sigmas, mus)
+
+    return jnp.squeeze(TX)
 
 
 # ==============================================================================================================================================

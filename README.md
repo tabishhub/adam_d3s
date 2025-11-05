@@ -10,7 +10,7 @@
 
 ---
 
-## 📘 Introduction
+## Introduction
 
 This repository contains the implementation of our recently proposed alternating gradient descent algorithms like **Alternating Adam** for learning dynamical systems from data.
 
@@ -24,7 +24,7 @@ Our focus is on approximating the **Koopman operator** and applying **Sparse Ide
 
 ---
 
-## ⚙️ Usage
+## Usage
 
 This repository is organized by experiment. Each folder includes:
 - A Jupyter notebook
@@ -35,7 +35,7 @@ You can explore models and results by opening the notebooks inside each experime
 
 ---
 
-## 📊 Results
+## Results
 
 The following systems are modeled using either the Koopman operator or parametric SINDy:
 
@@ -49,9 +49,9 @@ Each demonstrates improved performance using parametric basis learning over clas
 
 ---
 
-## 📐 System Dynamics
+## System Dynamics
 
-### 🔌 Chua's Circuit
+### Chua's Circuit
 
 The dynamics of Chua’s circuit are governed by the following system of ODEs:
 
@@ -69,7 +69,7 @@ f(x_1) = -b \sin\left(\frac{\pi x_1}{a} + d\right)
 
 ---
 
-### 🌡️ Nonlinear Heat Equation 
+### Nonlinear Heat Equation 
 
 Adapted from [this paper](https://arxiv.org/abs/1811.06337), the PDE is:
 
@@ -85,7 +85,7 @@ Expanded using the chain rule:
 
 ---
 
-## 🚀 Quick Guide
+## Quick Guide
 
 ### 1. Download or Clone the Repository
 
@@ -101,12 +101,12 @@ Or use the **Download ZIP** button from the GitHub interface.
 
 You can run experiments in either Google Colab or your local Python environment.
 
-#### 🔁 On Google Colab:
+#### On Google Colab:
 - Open [Google Colab](https://colab.research.google.com/)
 - Click `File → Upload Notebook`
 - Upload and run any notebook from this repo
 
-#### 💻 On Local Machine:
+####  On Local Machine:
 - Make sure you have Python 3.8+ and Jupyter installed.
 - Navigate to the notebook's folder and run:
 
@@ -118,9 +118,9 @@ Then open the desired `.ipynb` file and run cells using `Shift + Enter`.
 
 ---
 
-## 📚 References
+## References
 
-### 📄 Citation
+### Citation
 
 If you use this work, please cite the following:
 
